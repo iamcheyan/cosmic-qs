@@ -2,6 +2,7 @@ import qs.modules.ii.bar.weather
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Services.UPower
 import qs
 import qs.services
@@ -12,7 +13,29 @@ import qs.modules.common.functions
 Item { // Bar content region
     id: root
 
+    readonly property int barSidePadding: 6
+    readonly property int titleAreaWidth: 280
+    readonly property color barOpaqueColor: "#cc11111b"
+
     property var screen: root.QsWindow.window?.screen
+    readonly property HyprlandMonitor barMonitor: Hyprland.monitorFor(root.screen)
+    readonly property int barActiveWorkspaceId: HyprlandData.monitorActiveWorkspaceId(root.barMonitor)
+    readonly property bool workspaceHasWindows: {
+        const wsId = root.barActiveWorkspaceId;
+        if (wsId < 1)
+            return false;
+
+        const wsData = HyprlandData.workspaceById[wsId];
+        if (wsData !== undefined && typeof wsData.windows === "number")
+            return wsData.windows > 0;
+
+        return HyprlandData.hyprlandClientsForWorkspace(wsId).some(
+            win => win.mapped && !win.hidden
+        );
+    }
+    readonly property color barBackgroundColor: Config.options.bar.showBackground && root.workspaceHasWindows
+        ? root.barOpaqueColor
+        : "transparent"
     property var brightnessMonitor: Brightness.getMonitorForScreen(screen)
     property real useShortenedForm: (Appearance.sizes.barHellaShortenScreenWidthThreshold >= screen?.width) ? 2 : (Appearance.sizes.barShortenScreenWidthThreshold >= screen?.width) ? 1 : 0
     readonly property int centerSideModuleWidth: (useShortenedForm == 2) ? Appearance.sizes.barCenterSideModuleWidthHellaShortened : (useShortenedForm == 1) ? Appearance.sizes.barCenterSideModuleWidthShortened : Appearance.sizes.barCenterSideModuleWidth
@@ -27,7 +50,7 @@ Item { // Bar content region
 
     // Background shadow
     Loader {
-        active: Config.options.bar.showBackground && Config.options.bar.cornerStyle === 1 && Config.options.bar.floatStyleShadow
+        active: Config.options.bar.showBackground && Config.options.bar.cornerStyle === 1 && Config.options.bar.floatStyleShadow && root.workspaceHasWindows
         anchors.fill: barBackground
         sourceComponent: StyledRectangularShadow {
             anchors.fill: undefined // The loader's anchors act on this, and this should not have any anchor
@@ -41,70 +64,42 @@ Item { // Bar content region
             fill: parent
             margins: Config.options.bar.cornerStyle === 1 ? (Appearance.sizes.hyprlandGapsOut) : 0 // idk why but +1 is needed
         }
-        color: Config.options.bar.showBackground ? "#101010" : "transparent"
+        color: root.barBackgroundColor
         radius: Config.options.bar.cornerStyle === 1 ? Appearance.rounding.windowRounding : 0
         border.width: 0
         border.color: Appearance.colors.colLayer0Border
+
+        Behavior on color {
+            ColorAnimation {
+                duration: 300
+                easing.type: Easing.InOutCubic
+            }
+        }
     }
 
-    Rectangle {
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
+    RowLayout {
+        id: leftSectionRowLayout
+        anchors.left: parent.left
+        anchors.leftMargin: root.barSidePadding
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 14
+
+        BarTextButton {
+            Layout.alignment: Qt.AlignVCenter
+            text: "Applications"
+            onTriggered: GlobalStates.appLauncherOpen = !GlobalStates.appLauncherOpen
         }
-        height: 1
-        color: "#333333"
-    }
 
-    Item { // Left side | GNOME-like workspace area
-        id: barLeftSide
-
-        anchors {
-            top: parent.top
-            bottom: parent.bottom
-            left: parent.left
-            right: centerClock.left
+        Workspaces {
+            id: workspacesWidget
+            Layout.alignment: Qt.AlignVCenter
         }
-        implicitWidth: leftSectionRowLayout.implicitWidth
-        implicitHeight: Appearance.sizes.baseBarHeight
 
-        RowLayout {
-            id: leftSectionRowLayout
-            anchors.fill: parent
-            spacing: 0
-
-            BarGroup {
-                id: leftWorkspaceGroup
-                Layout.alignment: Qt.AlignVCenter
-                Layout.leftMargin: 0
-                padding: workspacesWidget.widgetPadding
-
-                Workspaces {
-                    id: workspacesWidget
-                    Layout.fillHeight: true
-
-                    MouseArea {
-                        // Right-click to toggle overview
-                        anchors.fill: parent
-                        acceptedButtons: Qt.RightButton
-
-                        onPressed: event => {
-                            if (event.button === Qt.RightButton) {
-                                GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
-                            }
-                        }
-                    }
-                }
-            }
-
-            ActiveWindow {
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                visible: root.useShortenedForm === 0
-            }
+        ActiveWindow {
+            id: activeWindowItem
+            Layout.alignment: Qt.AlignVCenter
+            titleAreaWidth: root.titleAreaWidth
+            visible: root.useShortenedForm === 0
         }
     }
 
@@ -115,22 +110,16 @@ Item { // Bar content region
             bottom: parent.bottom
             horizontalCenter: parent.horizontalCenter
         }
-        width: centerClockGroup.implicitWidth
-        implicitWidth: centerClockGroup.implicitWidth
-        implicitHeight: centerClockGroup.implicitHeight
+        implicitWidth: centerClockWidget.implicitWidth
+        implicitHeight: centerClockWidget.implicitHeight
 
         onPressed: {
             GlobalStates.sidebarRightOpen = !GlobalStates.sidebarRightOpen;
         }
 
-        BarGroup {
-            id: centerClockGroup
+        ClockWidget {
+            id: centerClockWidget
             anchors.verticalCenter: parent.verticalCenter
-
-            ClockWidget {
-                showDate: (Config.options.bar.verbose && root.useShortenedForm < 2)
-                Layout.alignment: Qt.AlignVCenter
-            }
         }
     }
 
@@ -267,6 +256,11 @@ Item { // Bar content region
             UtilButtons {
                 visible: (Config.options.bar.verbose && root.useShortenedForm === 0)
                 Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+            }
+
+            Media {
+                visible: root.useShortenedForm === 0
+                Layout.fillHeight: true
             }
 
             SysTray {
