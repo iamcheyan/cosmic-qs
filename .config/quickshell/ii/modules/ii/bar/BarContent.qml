@@ -47,51 +47,50 @@ Item { // Bar content region
         border.color: Appearance.colors.colLayer0Border
     }
 
-    FocusedScrollMouseArea { // Left side | scroll to change brightness
-        id: barLeftSideMouseArea
+    Item { // Left side | GNOME-like workspace area
+        id: barLeftSide
 
         anchors {
             top: parent.top
             bottom: parent.bottom
             left: parent.left
-            right: middleSection.left
+            right: centerClock.left
         }
         implicitWidth: leftSectionRowLayout.implicitWidth
         implicitHeight: Appearance.sizes.baseBarHeight
 
-        onScrollDown: Brightness.decreaseBrightness()
-        onScrollUp: Brightness.increaseBrightness()
-        onMovedAway: GlobalStates.osdBrightnessOpen = false
-        onPressed: event => {
-            if (event.button === Qt.LeftButton)
-                GlobalStates.sidebarLeftOpen = !GlobalStates.sidebarLeftOpen;
-        }
-
-        // Visual content
-        ScrollHint {
-            reveal: barLeftSideMouseArea.hovered
-            icon: Hyprsunset.gamma === 100 ? "light_mode" : "wb_twilight"
-            tooltipText: Translation.tr("Scroll to change brightness")
-            side: "left"
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
         RowLayout {
             id: leftSectionRowLayout
             anchors.fill: parent
-            spacing: 0
+            spacing: 8
 
-            LeftSidebarButton { // Left sidebar button
-                id: leftSidebarButton
+            BarGroup {
+                id: leftWorkspaceGroup
                 Layout.alignment: Qt.AlignVCenter
-                Layout.leftMargin: Appearance.rounding.screenRounding
-                colBackground: barLeftSideMouseArea.hovered ? Appearance.colors.colLayer1Hover : ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
+                Layout.leftMargin: 8
+                padding: workspacesWidget.widgetPadding
+
+                Workspaces {
+                    id: workspacesWidget
+                    Layout.fillHeight: true
+
+                    MouseArea {
+                        // Right-click to toggle overview
+                        anchors.fill: parent
+                        acceptedButtons: Qt.RightButton
+
+                        onPressed: event => {
+                            if (event.button === Qt.RightButton) {
+                                GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
+                            }
+                        }
+                    }
+                }
             }
 
             ActiveWindow {
-                Layout.leftMargin: 10 + (leftSidebarButton.visible ? 0 : Appearance.rounding.screenRounding)
-                Layout.rightMargin: Appearance.rounding.screenRounding
+                Layout.leftMargin: 2
+                Layout.rightMargin: 8
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 visible: root.useShortenedForm === 0
@@ -99,90 +98,28 @@ Item { // Bar content region
         }
     }
 
-    Row { // Middle section
-        id: middleSection
+    MouseArea { // Center clock
+        id: centerClock
         anchors {
             top: parent.top
             bottom: parent.bottom
             horizontalCenter: parent.horizontalCenter
         }
-        spacing: 4
+        width: centerClockGroup.implicitWidth
+        implicitWidth: centerClockGroup.implicitWidth
+        implicitHeight: centerClockGroup.implicitHeight
 
-        BarGroup {
-            id: leftCenterGroup
-            anchors.verticalCenter: parent.verticalCenter
-            implicitWidth: root.centerSideModuleWidth
-
-            Resources {
-                alwaysShowAllResources: root.useShortenedForm === 2
-                Layout.fillWidth: root.useShortenedForm === 2
-            }
-
-            Media {
-                visible: root.useShortenedForm < 2
-                Layout.fillWidth: true
-            }
-        }
-
-        VerticalBarSeparator {
-            visible: Config.options?.bar.borderless
+        onPressed: {
+            GlobalStates.sidebarRightOpen = !GlobalStates.sidebarRightOpen;
         }
 
         BarGroup {
-            id: middleCenterGroup
+            id: centerClockGroup
             anchors.verticalCenter: parent.verticalCenter
-            padding: workspacesWidget.widgetPadding
 
-            Workspaces {
-                id: workspacesWidget
-                Layout.fillHeight: true
-                MouseArea {
-                    // Right-click to toggle overview
-                    anchors.fill: parent
-                    acceptedButtons: Qt.RightButton
-
-                    onPressed: event => {
-                        if (event.button === Qt.RightButton) {
-                            GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
-                        }
-                    }
-                }
-            }
-        }
-
-        VerticalBarSeparator {
-            visible: Config.options?.bar.borderless
-        }
-
-        MouseArea {
-            id: rightCenterGroup
-            anchors.verticalCenter: parent.verticalCenter
-            implicitWidth: root.centerSideModuleWidth
-            implicitHeight: rightCenterGroupContent.implicitHeight
-
-            onPressed: {
-                GlobalStates.sidebarRightOpen = !GlobalStates.sidebarRightOpen;
-            }
-
-            BarGroup {
-                id: rightCenterGroupContent
-                anchors.fill: parent
-
-                ClockWidget {
-                    showDate: (Config.options.bar.verbose && root.useShortenedForm < 2)
-                    Layout.alignment: Qt.AlignVCenter
-                    Layout.fillWidth: true
-                }
-
-                UtilButtons {
-                    visible: (Config.options.bar.verbose && root.useShortenedForm === 0)
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                BatteryIndicator {
-                    visible: (root.useShortenedForm < 2 && Battery.available)
-                    Layout.alignment: Qt.AlignVCenter
-                }
+            ClockWidget {
+                showDate: (Config.options.bar.verbose && root.useShortenedForm < 2)
+                Layout.alignment: Qt.AlignVCenter
             }
         }
     }
@@ -193,7 +130,7 @@ Item { // Bar content region
         anchors {
             top: parent.top
             bottom: parent.bottom
-            left: middleSection.right
+            left: centerClock.right
             right: parent.right
         }
         implicitWidth: rightSectionRowLayout.implicitWidth
@@ -315,6 +252,11 @@ Item { // Bar content region
                         color: rightSidebarButton.colText
                     }
                 }
+            }
+
+            UtilButtons {
+                visible: (Config.options.bar.verbose && root.useShortenedForm === 0)
+                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
             }
 
             SysTray {

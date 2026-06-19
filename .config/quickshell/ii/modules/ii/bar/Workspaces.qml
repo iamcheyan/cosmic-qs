@@ -23,6 +23,7 @@ Item {
     readonly property int workspacesShown: Config.options.bar.workspaces.shown
     readonly property int workspaceGroup: Math.floor((effectiveActiveWorkspaceId - 1) / root.workspacesShown)
     property list<bool> workspaceOccupied: []
+    property list<int> visibleWorkspaceValues: []
     property int widgetPadding: 4
     property int workspaceButtonWidth: 26
     property real activeWorkspaceMargin: 2
@@ -30,7 +31,7 @@ Item {
     property real workspaceIconSizeShrinked: workspaceButtonWidth * 0.55
     property real workspaceIconOpacityShrinked: 1
     property real workspaceIconMarginShrinked: -4
-    property int workspaceIndexInGroup: (effectiveActiveWorkspaceId - 1) % root.workspacesShown
+    property int activeWorkspaceVisibleIndex: Math.max(0, visibleWorkspaceValues.indexOf(effectiveActiveWorkspaceId))
 
     property bool showNumbers: false
     Timer {
@@ -58,9 +59,14 @@ Item {
 
     // Function to update workspaceOccupied
     function updateWorkspaceOccupied() {
-        workspaceOccupied = Array.from({ length: root.workspacesShown }, (_, i) => {
+        const baseWorkspace = workspaceGroup * root.workspacesShown;
+        const occupied = Array.from({ length: root.workspacesShown }, (_, i) => {
             return Hyprland.workspaces.values.some(ws => ws.id === workspaceGroup * root.workspacesShown + i + 1);
-        })
+        });
+        workspaceOccupied = occupied;
+        visibleWorkspaceValues = Array.from({ length: root.workspacesShown }, (_, i) => baseWorkspace + i + 1).filter((workspaceValue, i) => {
+            return occupied[i] || workspaceValue === root.effectiveActiveWorkspaceId;
+        });
     }
 
     // Occupied workspace updates
@@ -81,8 +87,8 @@ Item {
         updateWorkspaceOccupied();
     }
 
-    implicitWidth: root.vertical ? Appearance.sizes.verticalBarWidth : (root.workspaceButtonWidth * root.workspacesShown)
-    implicitHeight: root.vertical ? (root.workspaceButtonWidth * root.workspacesShown) : Appearance.sizes.barHeight
+    implicitWidth: root.vertical ? Appearance.sizes.verticalBarWidth : (root.workspaceButtonWidth * root.visibleWorkspaceValues.length)
+    implicitHeight: root.vertical ? (root.workspaceButtonWidth * root.visibleWorkspaceValues.length) : Appearance.sizes.barHeight
 
     // Scroll to switch workspaces
     WheelHandler {
@@ -112,19 +118,21 @@ Item {
 
         rowSpacing: 0
         columnSpacing: 0
-        columns: root.vertical ? 1 : root.workspacesShown
-        rows: root.vertical ? root.workspacesShown : 1
+        columns: root.vertical ? 1 : root.visibleWorkspaceValues.length
+        rows: root.vertical ? root.visibleWorkspaceValues.length : 1
 
         Repeater {
-            model: root.workspacesShown
+            model: root.visibleWorkspaceValues
 
             Rectangle {
                 z: 1
                 implicitWidth: workspaceButtonWidth
                 implicitHeight: workspaceButtonWidth
                 radius: (width / 2)
-                property var previousOccupied: (workspaceOccupied[index-1] && !(!activeWindow?.activated && root.effectiveActiveWorkspaceId === index))
-                property var rightOccupied: (workspaceOccupied[index+1] && !(!activeWindow?.activated && root.effectiveActiveWorkspaceId === index+2))
+                property int workspaceValue: modelData
+                property int originalIndex: workspaceValue - root.workspaceGroup * root.workspacesShown - 1
+                property var previousOccupied: (workspaceOccupied[originalIndex - 1] && !(!activeWindow?.activated && root.effectiveActiveWorkspaceId === workspaceValue - 1))
+                property var rightOccupied: (workspaceOccupied[originalIndex + 1] && !(!activeWindow?.activated && root.effectiveActiveWorkspaceId === workspaceValue + 1))
                 property var radiusPrev: previousOccupied ? 0 : (width / 2)
                 property var radiusNext: rightOccupied ? 0 : (width / 2)
 
@@ -134,7 +142,7 @@ Item {
                 bottomRightRadius: radiusNext
                 
                 color: ColorUtils.transparentize(Appearance.m3colors.m3secondaryContainer, 0.4)
-                opacity: (workspaceOccupied[index] && !(!activeWindow?.activated && root.effectiveActiveWorkspaceId === index+1)) ? 1 : 0
+                opacity: (workspaceOccupied[originalIndex] && !(!activeWindow?.activated && root.effectiveActiveWorkspaceId === workspaceValue)) ? 1 : 0
 
                 Behavior on opacity {
                     animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
@@ -167,7 +175,7 @@ Item {
 
         AnimatedTabIndexPair {
             id: idxPair
-            index: root.workspaceIndexInGroup
+            index: root.activeWorkspaceVisibleIndex
         }
         property real indicatorPosition: Math.min(idxPair.idx1, idxPair.idx2) * workspaceButtonWidth + root.activeWorkspaceMargin
         property real indicatorLength: Math.abs(idxPair.idx1 - idxPair.idx2) * workspaceButtonWidth + workspaceButtonWidth - root.activeWorkspaceMargin * 2
@@ -184,19 +192,20 @@ Item {
     Grid {
         z: 3
 
-        columns: root.vertical ? 1 : root.workspacesShown
-        rows: root.vertical ? root.workspacesShown : 1
+        columns: root.vertical ? 1 : root.visibleWorkspaceValues.length
+        rows: root.vertical ? root.visibleWorkspaceValues.length : 1
         columnSpacing: 0
         rowSpacing: 0
 
         anchors.fill: parent
 
         Repeater {
-            model: root.workspacesShown
+            model: root.visibleWorkspaceValues
 
             Button {
                 id: button
-                property int workspaceValue: workspaceGroup * root.workspacesShown + index + 1
+                property int workspaceValue: modelData
+                property int originalIndex: workspaceValue - root.workspaceGroup * root.workspacesShown - 1
                 implicitHeight: vertical ? Appearance.sizes.verticalBarWidth : Appearance.sizes.barHeight
                 implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : Appearance.sizes.verticalBarWidth
                 onPressed: Hyprland.dispatch(`hl.dsp.focus({ workspace = ${workspaceValue}})`)
@@ -228,7 +237,7 @@ Item {
                         elide: Text.ElideRight
                         color: (root.effectiveActiveWorkspaceId == button.workspaceValue) ? 
                             Appearance.m3colors.m3onPrimary : 
-                            (workspaceOccupied[index] ? Appearance.m3colors.m3onSecondaryContainer : 
+                            (workspaceOccupied[button.originalIndex] ? Appearance.m3colors.m3onSecondaryContainer : 
                                 Appearance.colors.colOnLayer1Inactive)
 
                         Behavior on opacity {
@@ -240,6 +249,7 @@ Item {
                         opacity: (Config.options?.bar.workspaces.alwaysShowNumbers
                             || root.showNumbers
                             || (Config.options?.bar.workspaces.showAppIcons && workspaceButtonBackground.biggestWindow)
+                            || !workspaceOccupied[button.originalIndex]
                             ) ? 0 : 1
                         visible: opacity > 0
                         anchors.centerIn: parent
@@ -248,7 +258,7 @@ Item {
                         radius: width / 2
                         color: (root.effectiveActiveWorkspaceId == button.workspaceValue) ? 
                             Appearance.m3colors.m3onPrimary : 
-                            (workspaceOccupied[index] ? Appearance.m3colors.m3onSecondaryContainer : 
+                            (workspaceOccupied[button.originalIndex] ? Appearance.m3colors.m3onSecondaryContainer : 
                                 Appearance.colors.colOnLayer1Inactive)
 
                         Behavior on opacity {
