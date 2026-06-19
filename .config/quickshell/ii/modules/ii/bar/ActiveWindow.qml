@@ -4,49 +4,79 @@ import qs.modules.common.widgets
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Widgets
 import Quickshell.Wayland
 import Quickshell.Hyprland
 
 Item {
     id: root
+
+    property int titleAreaWidth: 280
+
     readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.QsWindow.window?.screen)
-    readonly property Toplevel activeWindow: ToplevelManager.activeToplevel
+    readonly property int activeWorkspaceId: HyprlandData.monitorActiveWorkspaceId(root.monitor)
+    readonly property var displayClient: HyprlandData.focusedClientForWorkspace(root.activeWorkspaceId)
 
-    property string activeWindowAddress: `0x${activeWindow?.HyprlandToplevel?.address}`
-    property bool focusingThisMonitor: HyprlandData.activeWorkspace?.monitor == monitor?.name
-    property var biggestWindow: HyprlandData.biggestWindowForWorkspace(HyprlandData.monitors[root.monitor?.id]?.activeWorkspace.id)
+    readonly property bool hasWindowOnWorkspace: root.displayClient !== null
+    readonly property string windowTitle: root.displayClient?.title ?? ""
+    readonly property string windowIconClass: root.displayClient?.class ?? ""
 
-    implicitWidth: colLayout.implicitWidth
+    implicitWidth: root.hasWindowOnWorkspace ? titleAreaWidth : 0
+    implicitHeight: 28
+    visible: root.hasWindowOnWorkspace
 
-    ColumnLayout {
-        id: colLayout
-
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.left: parent.left
-        anchors.right: parent.right
-        spacing: -4
-
-        StyledText {
-            Layout.fillWidth: true
-            font.pixelSize: Appearance.font.pixelSize.smaller
-            color: Appearance.colors.colSubtext
-            elide: Text.ElideRight
-            text: root.focusingThisMonitor && root.activeWindow?.activated && root.biggestWindow ? 
-                root.activeWindow?.appId :
-                (root.biggestWindow?.class) ?? Translation.tr("Desktop")
-
-        }
-
-        StyledText {
-            Layout.fillWidth: true
-            font.pixelSize: Appearance.font.pixelSize.small
-            color: Appearance.colors.colOnLayer0
-            elide: Text.ElideRight
-            text: root.focusingThisMonitor && root.activeWindow?.activated && root.biggestWindow ? 
-                root.activeWindow?.title :
-                (root.biggestWindow?.title) ?? `${Translation.tr("Workspace")} ${monitor?.activeWorkspace?.id ?? 1}`
-        }
-
+    function fallbackLetter(appId, title) {
+        const source = (appId && appId.length > 0) ? appId : (title ?? "");
+        if (!source || source.length === 0)
+            return "?";
+        return source.charAt(0).toUpperCase();
     }
 
+    RowLayout {
+        anchors.fill: parent
+        spacing: 6
+
+        Item {
+            Layout.alignment: Qt.AlignVCenter
+            implicitWidth: 14
+            implicitHeight: 14
+
+            IconImage {
+                id: windowIcon
+                anchors.fill: parent
+                visible: root.windowIconClass.length > 0
+                source: Quickshell.iconPath(AppSearch.guessIcon(root.windowIconClass), "image-missing")
+                smooth: true
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                visible: !windowIcon.visible || windowIcon.status !== Image.Ready
+                radius: 3
+                color: "#1e3a5f"
+
+                StyledText {
+                    anchors.centerIn: parent
+                    text: root.fallbackLetter(root.windowIconClass, root.windowTitle)
+                    font.pixelSize: 9
+                    font.variableAxes: ({ "wght": 700 })
+                    color: "#93c5fd"
+                }
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            font.pixelSize: 12
+            font.variableAxes: ({
+                "wght": 500,
+                "wdth": 100,
+            })
+            color: Appearance.m3colors.m3onSurface
+            elide: Text.ElideRight
+            maximumLineCount: 1
+            text: root.windowTitle
+        }
+    }
 }

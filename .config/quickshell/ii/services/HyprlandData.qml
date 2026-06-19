@@ -19,6 +19,7 @@ Singleton {
     property var workspaceIds: []
     property var workspaceById: ({})
     property var activeWorkspace: null
+    property var activeWindow: null
     property var monitors: []
     property var layers: ({})
 
@@ -44,6 +45,33 @@ Singleton {
         return root.windowByAddress[address];
     }
 
+    function monitorActiveWorkspaceId(monitor) {
+        if (!monitor)
+            return 0;
+        const monitorData = root.monitors.find(m => m.id === monitor.id);
+        return monitorData?.activeWorkspace?.id ?? monitor.activeWorkspace?.id ?? 0;
+    }
+
+    function focusedClientForWorkspace(workspaceId) {
+        if (workspaceId < 1)
+            return null;
+
+        const active = root.activeWindow;
+        if (active?.address && active.workspace?.id == workspaceId && active.mapped && !active.hidden)
+            return active;
+
+        const clients = root.hyprlandClientsForWorkspace(workspaceId)
+            .filter(win => win.mapped && !win.hidden);
+        if (clients.length === 0)
+            return null;
+
+        return clients.reduce((best, win) => {
+            if (!best)
+                return win;
+            return win.focusHistoryID < best.focusHistoryID ? win : best;
+        }, null);
+    }
+
     // Internals
 
     function updateWindowList() {
@@ -63,11 +91,16 @@ Singleton {
         getActiveWorkspace.running = true;
     }
 
+    function updateActiveWindow() {
+        getActiveWindow.running = true;
+    }
+
     function updateAll() {
         updateWindowList();
         updateMonitors();
         updateLayers();
         updateWorkspaces();
+        updateActiveWindow();
     }
 
     function biggestWindowForWorkspace(workspaceId) {
@@ -89,6 +122,9 @@ Singleton {
         function onRawEvent(event) {
             // console.log("Hyprland raw event:", event.name);
             if (["openlayer", "closelayer", "screencast"].includes(event.name)) return;
+            if (["activewindow", "activewindowv2", "windowtitlev2", "focusedmon", "focusedmonv2"].includes(event.name)) {
+                updateActiveWindow();
+            }
             updateAll()
         }
     }
@@ -160,6 +196,22 @@ Singleton {
             id: activeWorkspaceCollector
             onStreamFinished: {
                 root.activeWorkspace = JSON.parse(activeWorkspaceCollector.text);
+            }
+        }
+    }
+
+    Process {
+        id: getActiveWindow
+        command: ["hyprctl", "activewindow", "-j"]
+        stdout: StdioCollector {
+            id: activeWindowCollector
+            onStreamFinished: {
+                try {
+                    const data = JSON.parse(activeWindowCollector.text.trim());
+                    root.activeWindow = data?.address ? data : null;
+                } catch (e) {
+                    root.activeWindow = null;
+                }
             }
         }
     }
