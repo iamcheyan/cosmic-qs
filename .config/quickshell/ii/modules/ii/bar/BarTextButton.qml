@@ -19,19 +19,6 @@ MouseArea {
 
     onClicked: root.triggered()
 
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: 2
-        radius: 5
-        color: root.containsMouse ? "#1cffffff" : "transparent"
-
-        Behavior on color {
-            ColorAnimation {
-                duration: 120
-            }
-        }
-    }
-
     StyledText {
         id: label
         anchors.verticalCenter: parent.verticalCenter
@@ -43,5 +30,12 @@ MouseArea {
             "wdth": 100,
         })
         color: Appearance.m3colors.m3onSurface
+        opacity: root.containsMouse ? 1 : 0.75
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 120
+            }
+        }
     }
 }

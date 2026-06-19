@@ -19,7 +19,7 @@ Item {
             leftMargin: 0
             rightMargin: 0
         }
-        color: Config.options?.bar.borderless ? "transparent" : "#1b1b1b"
+        color: "transparent"
         radius: Appearance.rounding.small
     }
 

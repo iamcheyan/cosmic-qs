@@ -72,30 +72,32 @@ Item {
         rowSpacing: 8
         columnSpacing: 15
 
-        RippleButton {
+        MouseArea {
             id: trayOverflowButton
             visible: root.showOverflowMenu && root.unpinnedItems.length > 0
-            toggled: root.trayOverflowOpen
-            property bool containsMouse: hovered
-
-            downAction: () => root.trayOverflowOpen = !root.trayOverflowOpen
 
             Layout.fillHeight: !root.vertical
             Layout.fillWidth: root.vertical
-            background.implicitWidth: 24
-            background.implicitHeight: 24
-            background.anchors.centerIn: this
-            colBackgroundToggled: Appearance.colors.colSecondaryContainer
-            colBackgroundToggledHover: Appearance.colors.colSecondaryContainerHover
-            colRippleToggled: Appearance.colors.colSecondaryContainerActive
+            implicitWidth: 24
+            implicitHeight: 24
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            acceptedButtons: Qt.LeftButton
 
-            contentItem: MaterialSymbol {
+            onClicked: root.trayOverflowOpen = !root.trayOverflowOpen
+
+            MaterialSymbol {
                 anchors.centerIn: parent
                 iconSize: Appearance.font.pixelSize.larger
                 text: "expand_more"
                 horizontalAlignment: Text.AlignHCenter
-                color: root.trayOverflowOpen ? Appearance.colors.colOnSecondaryContainer : Appearance.colors.colOnLayer2
+                color: Appearance.colors.colOnLayer2
+                opacity: root.trayOverflowOpen || trayOverflowButton.containsMouse ? 1 : 0.75
                 rotation: (root.trayOverflowOpen ? 180 : 0) - (90 * root.vertical) + (180 * root.invertSide)
+
+                Behavior on opacity {
+                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                }
                 Behavior on rotation {
                     animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                 }

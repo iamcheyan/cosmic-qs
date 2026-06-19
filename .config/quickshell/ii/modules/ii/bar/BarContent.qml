@@ -171,12 +171,12 @@ Item { // Bar content region
                 implicitHeight: indicatorsRowLayout.implicitHeight + 5 * 2
 
                 buttonRadius: Appearance.rounding.full
-                colBackground: barRightSideMouseArea.hovered ? Appearance.colors.colLayer1Hover : ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
-                colBackgroundHover: Appearance.colors.colLayer1Hover
-                colRipple: Appearance.colors.colLayer1Active
-                colBackgroundToggled: Appearance.colors.colSecondaryContainer
-                colBackgroundToggledHover: Appearance.colors.colSecondaryContainerHover
-                colRippleToggled: Appearance.colors.colSecondaryContainerActive
+                colBackground: ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
+                colBackgroundHover: ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
+                colRipple: ColorUtils.transparentize(Appearance.colors.colLayer1Active, 1)
+                colBackgroundToggled: ColorUtils.transparentize(Appearance.colors.colSecondaryContainer, 1)
+                colBackgroundToggledHover: ColorUtils.transparentize(Appearance.colors.colSecondaryContainerHover, 1)
+                colRippleToggled: ColorUtils.transparentize(Appearance.colors.colSecondaryContainerActive, 1)
                 toggled: GlobalStates.sidebarRightOpen
                 property color colText: toggled ? Appearance.m3colors.m3onSecondaryContainer : Appearance.colors.colOnLayer0
 
@@ -279,10 +279,7 @@ Item { // Bar content region
             Loader {
                 Layout.leftMargin: 4
                 active: Config.options.bar.weather.enable
-
-                sourceComponent: BarGroup {
-                    WeatherBar {}
-                }
+                sourceComponent: WeatherBar {}
             }
         }
     }
