@@ -34,10 +34,10 @@
             "type": "scheme-fidelity"
         },
         "transparency": {
-            "automatic": true,
-            "backgroundTransparency": 0.11,
-            "contentTransparency": 0.57,
-            "enable": true
+            "automatic": false,
+            "backgroundTransparency": 0,
+            "contentTransparency": 0,
+            "enable": false
         },
         "wallpaperTheming": {
             "enableAppsAndShell": false,
@@ -278,9 +278,9 @@
     },
     "lock": {
         "blur": {
-            "enable": true,
-            "extraZoom": 1.1,
-            "radius": 100
+            "enable": false,
+            "extraZoom": 1,
+            "radius": 0
         },
         "centerClock": true,
         "launchOnStartup": false,

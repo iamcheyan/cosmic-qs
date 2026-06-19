@@ -24,9 +24,9 @@ Item {
     readonly property int workspaceGroup: Math.floor((effectiveActiveWorkspaceId - 1) / root.workspacesShown)
     property list<bool> workspaceOccupied: []
     property list<int> visibleWorkspaceValues: []
-    property int widgetPadding: 4
-    property int workspaceButtonWidth: 26
-    property real activeWorkspaceMargin: 2
+    property int widgetPadding: 0
+    property int workspaceButtonWidth: 22
+    property real activeWorkspaceMargin: 0
     property real workspaceIconSize: workspaceButtonWidth * 0.69
     property real workspaceIconSizeShrinked: workspaceButtonWidth * 0.55
     property real workspaceIconOpacityShrinked: 1

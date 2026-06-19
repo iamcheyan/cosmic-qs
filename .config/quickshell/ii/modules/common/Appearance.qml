@@ -238,12 +238,12 @@ Singleton {
             property int smallest: 10
             property int smaller: 12
             property int smallie: 13
-            property int small: 15
-            property int normal: 16
-            property int large: 17
-            property int larger: 19
-            property int huge: 22
-            property int hugeass: 23
+            property int small: 12
+            property int normal: 13
+            property int large: 14
+            property int larger: 15
+            property int huge: 17
+            property int hugeass: 18
             property int title: huge
         }
     }
@@ -385,7 +385,7 @@ Singleton {
     }
 
     sizes: QtObject {
-        property real baseBarHeight: 40
+        property real baseBarHeight: 24
         property real barHeight: Config.options.bar.cornerStyle === 1 ? 
             (baseBarHeight + root.sizes.hyprlandGapsOut * 2) : baseBarHeight
         property real barCenterSideModuleWidth: Config.options?.bar.verbose ? 360 : 140

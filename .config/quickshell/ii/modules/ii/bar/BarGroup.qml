@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Item {
     id: root
     property bool vertical: false
-    property real padding: 5
+    property real padding: 3
     implicitWidth: vertical ? Appearance.sizes.baseVerticalBarWidth : (gridLayout.implicitWidth + padding * 2)
     implicitHeight: vertical ? (gridLayout.implicitHeight + padding * 2) : Appearance.sizes.baseBarHeight
     default property alias items: gridLayout.children
@@ -14,12 +14,12 @@ Item {
         id: background
         anchors {
             fill: parent
-            topMargin: root.vertical ? 0 : 4
-            bottomMargin: root.vertical ? 0 : 4
-            leftMargin: root.vertical ? 4 : 0
-            rightMargin: root.vertical ? 4 : 0
+            topMargin: 0
+            bottomMargin: 0
+            leftMargin: 0
+            rightMargin: 0
         }
-        color: Config.options?.bar.borderless ? "transparent" : Appearance.colors.colLayer1
+        color: Config.options?.bar.borderless ? "transparent" : "#1b1b1b"
         radius: Appearance.rounding.small
     }
 
@@ -35,7 +35,7 @@ Item {
             bottom: root.vertical ? parent.bottom : undefined
             margins: root.padding
         }
-        columnSpacing: 4
+        columnSpacing: 2
         rowSpacing: 12
     }
 }

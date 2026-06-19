@@ -41,10 +41,20 @@ Item { // Bar content region
             fill: parent
             margins: Config.options.bar.cornerStyle === 1 ? (Appearance.sizes.hyprlandGapsOut) : 0 // idk why but +1 is needed
         }
-        color: Config.options.bar.showBackground ? Appearance.colors.colLayer0 : "transparent"
+        color: Config.options.bar.showBackground ? "#101010" : "transparent"
         radius: Config.options.bar.cornerStyle === 1 ? Appearance.rounding.windowRounding : 0
-        border.width: Config.options.bar.cornerStyle === 1 ? 1 : 0
+        border.width: 0
         border.color: Appearance.colors.colLayer0Border
+    }
+
+    Rectangle {
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        height: 1
+        color: "#333333"
     }
 
     Item { // Left side | GNOME-like workspace area
@@ -62,12 +72,12 @@ Item { // Bar content region
         RowLayout {
             id: leftSectionRowLayout
             anchors.fill: parent
-            spacing: 8
+            spacing: 0
 
             BarGroup {
                 id: leftWorkspaceGroup
                 Layout.alignment: Qt.AlignVCenter
-                Layout.leftMargin: 8
+                Layout.leftMargin: 0
                 padding: workspacesWidget.widgetPadding
 
                 Workspaces {
@@ -89,7 +99,7 @@ Item { // Bar content region
             }
 
             ActiveWindow {
-                Layout.leftMargin: 2
+                Layout.leftMargin: 8
                 Layout.rightMargin: 8
                 Layout.fillWidth: true
                 Layout.fillHeight: true
